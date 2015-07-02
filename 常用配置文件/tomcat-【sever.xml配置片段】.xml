@@ -1,0 +1,13 @@
+
+<!--端口及UTF-8编码-->
+<Connector port="8080" protocol="HTTP/1.1"  
+			   useBodyEncodingForURI="true" URIEncoding="UTF-8"
+               connectionTimeout="20000" 
+               redirectPort="8443" />
+
+<Host name="localhost"  appBase="webapps"
+            unpackWARs="true" autoDeploy="true"
+            xmlValidation="false" xmlNamespaceAware="false">
+		<!--配置qsms工程为默认访问工程-->	
+		<Context  docBase="qsms"  path=""   reloadable="true"></Context>  
+</Host>
