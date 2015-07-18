@@ -113,13 +113,47 @@ Lucene的核心功能主要完成上面的两步：即“建立索引”和“�
 
 ###2.搜索索引
 **IndexFiles.java 代码片段：**  
-```java
+````java
+  public static void main(String[] args) {
+        try {
+ 			//构建Query对象
+            String field = "contents";
+            Analyzer analyzer = new StandardAnalyzer();
+            QueryParser parser = new QueryParser(field, analyzer);
+            Query query = parser.parse("server");      
+            //创建IndexReader对象
+            String indexPath = "d:/lucene/index";
+            IndexReader reader = DirectoryReader.open(FSDirectory.open(Paths.get(indexPath)));
+			//创建IndexSearch对象
+            IndexSearcher searcher = new IndexSearcher(reader);
+            TopDocs topDocs = searcher.search(query, 5);
+			//打印查询结果
+            System.out.println("查询结果：" + topDocs.totalHits + "条");
+            ScoreDoc[] hits = topDocs.scoreDocs;
+            for(ScoreDoc scoreDoc:hits){
+                Document doc = searcher.doc(scoreDoc.doc);
+                System.out.println("文档路径："+doc.get("path"));
+                System.out.println("文档内容："+doc.get("contents"));
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (ParseException e) {
+            e.printStackTrace();
+        }
+    }
 
 ```
+>查询结果：2条  
+>文档路径：d:\lucene\docs\server.xml  
+>文档内容：null  
+>文档路径：d:\lucene\docs\catalina.properties  
+>文档内容：null  
+
+分析：从查询结果来看，发现文档内容并没有获取到，这时因为我们在创建索引时并没有对文档内容进行存储(在IndexFiles中，我们通过TextField来创建文档内容的文本域，但默认的文本域是不进行存储的)，如果要想在这里显示，在创建索引时将内容转换为字串并进行存储即可。  
 
 
 
-
+##创建
 
 
 ```java
