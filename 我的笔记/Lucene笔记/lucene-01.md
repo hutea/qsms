@@ -113,15 +113,71 @@ Lucene的核心功能主要完成上面的两步：即“建立索引”和“�
 
 ###2.搜索索引
 **IndexFiles.java 代码片段：**  
-```java
+````java
+  public static void main(String[] args) {
+        try {
+ 			//构建Query对象
+            String field = "contents";
+            Analyzer analyzer = new StandardAnalyzer();
+            QueryParser parser = new QueryParser(field, analyzer);
+            Query query = parser.parse("server");      
+            //创建IndexReader对象
+            String indexPath = "d:/lucene/index";
+            IndexReader reader = DirectoryReader.open(FSDirectory.open(Paths.get(indexPath)));
+			//创建IndexSearch对象
+            IndexSearcher searcher = new IndexSearcher(reader);
+            TopDocs topDocs = searcher.search(query, 5);
+			//打印查询结果
+            System.out.println("查询结果：" + topDocs.totalHits + "条");
+            ScoreDoc[] hits = topDocs.scoreDocs;
+            for(ScoreDoc scoreDoc:hits){
+                Document doc = searcher.doc(scoreDoc.doc);
+                System.out.println("文档路径："+doc.get("path"));
+                System.out.println("文档内容："+doc.get("contents"));
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (ParseException e) {
+            e.printStackTrace();
+        }
+    }
 
 ```
+>查询结果：2条  
+>文档路径：d:\lucene\docs\server.xml  
+>文档内容：null  
+>文档路径：d:\lucene\docs\catalina.properties  
+>文档内容：null  
+
+分析：从查询结果来看，发现文档内容并没有获取到，这时因为我们在创建索引时并没有对文档内容进行存储(在IndexFiles中，我们通过TextField来创建文档内容的文本域，但默认的文本域是不进行存储的)，如果要想在这里显示，在创建索引时将内容转换为字串并进行存储即可。  
 
 
 
+##四、索引过程核心类
+在创建索引过程中主要用到下图所示的五个类
+![索引文件列表](https://raw.githubusercontent.com/hutea/qsms/master/%E6%88%91%E7%9A%84%E7%AC%94%E8%AE%B0/Lucene%E7%AC%94%E8%AE%B0/images/lucene%E5%88%9B%E5%BB%BA%E7%B4%A2%E5%BC%95%E4%BD%BF%E7%94%A8%E5%88%B0%E7%9A%84%E7%B1%BB.png)  
 
+###1.IndexWriter
+IndexWriter是索引过程的核心组件，主要负责创建新的索引或者打开已有索引，以及向索引中添加、删除或更新被索引的文档信息。
 
+###2.Directory
+Directory类指定了索引文件的存放位置，比如我们在实例中使用其子类FSDirectory.open方法来获取真实的存储路径。
 
-```java
+###3.Analyzer
+IndexWriter并不能直接索引文本，需由经Analyzer将文本进行分词后才能进行文本索引。Analyzer主要负责从被索引的文本文件中提取语汇单元，并去掉无用信息。事实上对一个应用程序选择一个合适的Analyzer是非常重要的，因为一个合适的Analyzer对于索引搜索的准确性起着非常重要的作用。
 
-```
+###4.Document
+Document是搜索和搜索的原子单位，包含一个或多个Field对象的容器，而IndexWriter最终要进行直接处理的对象也正是此Doucment对象。从本质上来说，Document决定了文档怎样被索引，当然最本质上是由Field决定。
+
+###5.Field
+域通常由域名和对应的域值，再加上存储选项组成(当然有些域是没有存储选项的，如TextField不进行存储，则没有存储选项)。
+
+##五、搜索过程核心类
+###1.IndexSearcher
+IndexSearcher负责搜索由IndexWriter类创建的索引，具体来讲主要通过search方法来进行搜索。IndexSearch可看作是一个以只读方式打开索引的类，在前面的实例中，我们使用了最简单的搜索方法，即通过Query对象和int topN来实现搜索。
+
+###2.Query
+要实现查询功能，通常我们会将查询内容构建成一个Query对象，然后再将此Query对象传递给IndexSearcher的search方法。除了在前面的实例中我们通过QuerParser对象来解析出一个Query对象外，我们还可以构建TermQuery、BooleanQuery、PhraserQuery等Query子类来进行查询操作。
+###3.TopDocs
+简单来说TopDocs是对查询结果集的封装，通过TopDocs对象的scoreDocs属性我们可以得到具体的查询结果文档信息(ScoreDocs数组)。然后可以对此ScoreDocs数组进行遍历操作得到我们期望的内容。
+
